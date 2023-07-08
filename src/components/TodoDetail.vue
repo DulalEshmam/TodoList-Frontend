@@ -18,6 +18,7 @@
     tabindex="-1"
     aria-labelledby="staticBackdropLabel"
     aria-hidden="true"
+    ref="modal"
   >
     <div class="modal-dialog">
       <div class="modal-content">
@@ -30,78 +31,79 @@
             aria-label="Close"
           ></button>
         </div>
-        <div class="modal-body">
-          <div>
-            <label for="exampleFormControlInput1" class="form-label"
-              >Task-Title</label
-            >
-            <input
-              class="form-control"
-              v-model="title"
-              type="text"
-              placeholder="Give your Task a Title"
-              aria-label="default input example"
-            />
-          </div>
-          <div>
-            <div class="mb-3">
-              <label for="exampleFormControlTextarea1" class="form-label"
-                >Description</label
+        <form class="needs-validation" @submit.prevent="createTask" novalidate>
+          <div class="modal-body">
+            <div>
+              <label for="exampleFormControlInput1" class="form-label"
+                >Task-Title</label
               >
-              <textarea
+              <input
                 class="form-control"
-                id="exampleFormControlTextarea1"
-                rows="3"
-                v-model="description"
-              ></textarea>
+                v-model="title"
+                type="text"
+                placeholder="Give your Task a Title"
+                aria-label="default input example"
+                required
+              />
+              <div class="invalid-feedback">Please provide a valid title.</div>
+            </div>
+            <label class="select-label">Select a status</label>
+            <div class="form-floating">
+              <select
+                class="form-select"
+                id="floatingSelect"
+                aria-label="Floating label select example"
+                v-model="status"
+                @change="$emit('statusChanged', status)"
+                required
+              >
+                <option value="To-Do">To-do</option>
+                <option value="In-Progress">In-Progress</option>
+                <option value="Finished">Finished</option>
+              </select>
+              <div class="invalid-feedback">Please provide a valid status.</div>
+              <label for="floatingSelect">Status</label>
+            </div>
+            <div class="date-picker">
+              <label class="date-label">Select a Date</label>
+              <VueDatePicker
+                v-model="date"
+                :format="datePickerFormat"
+                placeholder="Select a date"
+                required
+              />
             </div>
           </div>
-          <div class="form-floating">
-            <select
-              class="form-select"
-              id="floatingSelect"
-              aria-label="Floating label select example"
-              v-model="status"
+          <div v-if="this.serverValidationMessages">
+            <ul>
+              <li
+                v-for="(message, index) in serverValidationMessages"
+                :key="index"
+                style="color: red"
+              >
+                {{ message }}
+              </li>
+            </ul>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
             >
-              <option selected>Open this select menu</option>
-              <option value="toDo">To-do</option>
-              <option value="in_progress">In-Progress</option>
-              <option value="done">Done</option>
-            </select>
-            <label for="floatingSelect">Works with selects</label>
+              Close
+            </button>
+            <button type="submit" class="btn btn-primary">Create</button>
           </div>
-          <div class="date-picker">
-            <VueDatePicker v-model="date" :month-change-on-scroll="false" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            data-bs-dismiss="modal"
-          >
-            Close
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary"
-            @click.prevent="createTask"
-          >
-            Create
-          </button>
-        </div>
+        </form>
       </div>
     </div>
   </div>
-  <!--  <div v-for="task in tasks" :key="task.id">-->
-  <!--    {{ task.title }} - {{ task.description }} - {{ task.status }} - -->
-  <!--    {{ task.date }}-->
-  <!--  </div>-->
 </template>
 
 <script>
-import VueDatePicker from "@vuepic/vue-datepicker";
 import "@vuepic/vue-datepicker/dist/main.css";
+import VueDatePicker from "@vuepic/vue-datepicker";
 export default {
   components: {
     VueDatePicker,
@@ -110,33 +112,59 @@ export default {
   data() {
     return {
       title: "",
-      description: "",
       status: "",
       date: null,
       tasks: [],
+      datePickerFormat: "dd.MM.yyyy",
+      serverValidationMessages: [],
     };
   },
   methods: {
-    createTask() {
-      const myHeaders = new Headers();
-      myHeaders.append("Content-Type", "application/json");
+    async createTask() {
+      if (this.validate()) {
+        const endpoint = "http://localhost:8080/api/v1/todos";
 
-      const payload = JSON.stringify({
-        title: this.title,
-        description: this.description,
-        status: this.status,
-        date: this.date,
-      });
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
 
-      const requestOptions = {
-        method: "POST",
-        headers: myHeaders,
-        body: payload,
-        redirect: "follow",
-      };
+        const task = JSON.stringify({
+          title: this.title,
+          status: this.status,
+          date: this.date,
+        });
 
-      fetch("http://localhost:8080/api/v1/todos", requestOptions)
-        .catch((error) => console.log("error", error));
+        const requestOptions = {
+          method: "POST",
+          headers: headers,
+          body: task,
+          redirect: "follow",
+        };
+
+        const response = await fetch(endpoint, requestOptions);
+        await this.handleResponse(response);
+      }
+    },
+    async handleResponse(response) {
+      if (response.ok) {
+        // Schließen Sie das Modal und laden Sie die Seite neu
+        var myModal = new bootstrap.Modal(
+          document.getElementById("staticBackdrop")
+        );
+        myModal.hide();
+        location.reload();
+      } else if (response.status === 400) {
+        response = await response.json();
+        response.errors.forEach((error) => {
+          this.serverValidationMessages.push(error.defaultMessage);
+        });
+      } else {
+        this.serverValidationMessages.push("Unknown error occurred");
+      }
+    },
+    validate() {
+      const form = document.querySelector(".needs-validation");
+      form.classList.add("was-validated");
+      return form.checkValidity();
     },
   },
 };
