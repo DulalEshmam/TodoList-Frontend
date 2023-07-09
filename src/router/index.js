@@ -20,6 +20,12 @@ const router = createRouter({
       name: "ToDo",
       component: () => import("../views/ToDoView.vue"),
     },
+
+    {
+      path: "/test",
+      name: "test",
+      component: () => import("../views/HomeViewTest.vue"),
+    },
   ],
 });
 

@@ -8,6 +8,9 @@ module.exports = {
     },
   globals: {
     bootstrap: 'readonly',
+    describe: "readonly",
+    it: "readonly",
+    expect: "readonly",
   },
   'extends': [
     'plugin:vue/vue3-essential',
