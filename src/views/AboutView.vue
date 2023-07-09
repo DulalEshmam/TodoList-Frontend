@@ -10,6 +10,16 @@
     <router-link to="/">
       <button type="button" class="btn btn-primary btn-lg">Learn more</button>
     </router-link>
+    <div class="mt-3">
+      <button type="button" class="btn btn-primary btn-lg" href="https://github.com/DulalEshmam/ToDoWebTech">
+        Link to Backend-Repository
+      </button>
+    </div>
+    <div class="mt-3">
+      <button type="button" class="btn btn-primary btn-lg" href="https://github.com/DulalEshmam/TodoList-Frontend">
+        Link to Frontend-Repository
+      </button>
+    </div>
   </div>
 </template>
 
@@ -19,3 +29,4 @@
   padding: 30px;
 }
 </style>
+<script setup></script>
